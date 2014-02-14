@@ -1,0 +1,152 @@
+-- Information about the cassandra cluster
+SHOW VERSION;
+SHOW HOST;
+
+DESCRIBE CLUSTER;
+DESCRIBE FULL SCHEMA;
+DESCRIBE SCHEMA;
+
+DESCRIBE KEYSPACES;
+DESCRIBE KEYSPACE system;
+
+DESCRIBE TABLES;
+DESCRIBE TABLE system.schema_keyspaces;
+
+SELECT * FROM system.schema_keyspaces;
+SELECT * FROM system.local;
+SELECT * FROM system.peers;
+SELECT * FROM system.schema_columns;
+SELECT * FROM system.schema_columnfamilies;
+SELECT * FROM system.schema_keyspaces  WHERE keyspace_name='system';
+
+-- Consistency level
+CONSISTENCY;
+CONSISTENCY ONE;
+
+-- Tracing a request
+TRACING ON;
+SELECT * FROM system.schema_keyspaces  WHERE keyspace_name='system';
+TRACING OFF;
+
+-- Keyspace
+DROP KEYSPACE IF EXISTS web;
+CREATE KEYSPACE web WITH replication = {'class': 'SimpleStrategy',
+'replication_factor': '1'};
+CREATE KEYSPACE IF NOT EXISTS web WITH replication = {'class': 'SimpleStrategy',
+'replication_factor': '1'};
+ALTER KEYSPACE web WITH replication = {'class': 'SimpleStrategy',
+'replication_factor': '2'};
+
+SELECT * FROM system.schema_keyspaces WHERE keyspace_name='web';
+
+USE web;
+
+-- Create Table
+CREATE TABLE IF NOT EXISTS users(
+        username text,
+        first_name text,
+        last_name varchar,
+        skills set<text>,
+        PRIMARY KEY(username)
+) WITH comment='Author records';
+
+-- Alter table
+ALTER TABLE users ADD phone_numbers list<text>;
+ALTER TABLE users ADD skill_levels map<text, int>;
+ALTER TABLE users ALTER last_name TYPE text;
+
+ALTER TABLE users ADD nickname text;
+ALTER TABLE users DROP nickname;
+
+
+-- Entry for the table in system keyspace
+SELECT * FROM system.schema_columnfamilies where keyspace_name='web' and
+columnfamily_name='users';
+
+-- Insert
+INSERT INTO users (username, first_name, last_name, skills) VALUES
+('cnorris','chuck','norris', {'Java', 'Python'});
+INSERT INTO users (username, first_name, last_name, skills) VALUES
+('jskeet','jon','skeet', {'XML', 'HTML'}) USING TTL 3600;
+
+-- Update
+UPDATE users USING TTL 7200 SET first_name='jon1', last_name='skeet1' WHERE
+username='jskeet';
+UPDATE users SET skills = skills + {'Bash'} WHERE username='cnorris';
+UPDATE users SET skills = {} WHERE username='cnorris';
+UPDATE users SET skill_levels = {'Java':10, 'Python':10} WHERE
+username='cnorris';
+UPDATE users SET skill_levels['Java']=9 where username='cnorris';
+UPDATE users SET phone_numbers = ['123456789', '987654321', '123456789'] +
+phone_numbers WHERE username='cnorris';
+
+-- Select
+-- Select using a primary key
+SELECT * FROM users WHERE username='cnorris';
+SELECT username, first_name, last_name FROM users WHERE first_name='chuck';
+SELECT * FROM users WHERE username in ('cnorris', 'jskeet');
+SELECT username AS userName, first_name as firstName, last_name AS lastName FROM
+users;
+
+-- If I want to query by a column other than by a primary key, index it first
+CREATE INDEX on users (first_name);
+SELECT * FROM users WHERE first_name='chuck';
+
+-- Index
+CREATE INDEX IF NOT EXISTS last_name_index ON users (last_name);
+DROP INDEX last_name_index;
+DROP INDEX IF EXISTS last_name_index;
+
+-- Count
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) AS user_count FROM users;
+
+-- Limit
+SELECT * FROM users limit 1;
+
+-- Allow filtering
+SELECT * FROM users WHERE first_name='chuck' AND last_name='norris' ALLOW
+FILTERING;
+
+-- Export
+COPY users TO 'users.csv';
+COPY users (username, first_name, last_name) TO 'users-select.txt';
+COPY users TO STDOUT;
+
+-- Delete
+DELETE FROM users WHERE username='jbrown';
+DELETE FROM users WHERE username in ('jbrown', 'jmiles1');
+DELETE skills FROM users WHERE username='jbrown';
+DELETE skill_levels['Java'] FROM users where username='jbrown';
+-- Permamently remove all data from the table
+TRUNCATE users;
+
+-- Import
+COPY users FROM 'users.csv';
+COPY users (username, first_name, last_name) FROM 'users-select.txt';
+-- COPY users FROM STDOUT;
+
+-- Batch
+BEGIN BATCH
+INSERT INTO users (username, first_name, last_name, skills) VALUES
+('jbrown','johnny','brown', {'Java', 'Python'});
+UPDATE users SET skills = {} WHERE username='jbrown';
+DELETE FROM users WHERE username='jbrown';
+APPLY BATCH;
+
+-- Composite keys and order by
+CREATE TABLE timeline (
+    username text,
+    posted_month int,
+    body text,
+    posted_by text,
+    PRIMARY KEY (username, posted_month)
+) WITH comment='Timeline records'
+  AND compaction = { 'class' : 'LeveledCompactionStrategy' };
+
+INSERT INTO timeline (username, posted_month, body, posted_by) VALUES ('jbrown',
+1,'This is important', 'stevej');
+SELECT * FROM timeline where username='jbrown' and posted_month=1;
+SELECT * FROM timeline where username='jbrown' order by posted_month desc;
+
+DROP KEYSPACE web;
