@@ -18,7 +18,7 @@ IP=`ifconfig eth1 | grep inet | head -n1 | cut -d":" -f2 | cut -d" " -f1`
 sudo sed -i "s/listen_address: localhost/listen_address: ${IP}/" /etc/cassandra/cassandra.yaml
 sudo sed -i "s/rpc_address: localhost/rpc_address: ${IP}/" /etc/cassandra/cassandra.yaml
 
-read -p "Enter the IP of the seed node, or 127.0.0.1 if its the first node in the cluster: " SEED_IPS
+read -p "Enter the IP or IPs (comma separated) of the seed node(s), or 127.0.0.1 if its the first node in the cluster: " SEED_IPS
 sudo sed -i "s/seeds: \"127.0.0.1\"/seeds: \"${SEED_IPS}\"/" /etc/cassandra/cassandra.yaml
 
 sudo /etc/init.d/cassandra restart
