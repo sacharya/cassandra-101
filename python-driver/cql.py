@@ -1,6 +1,6 @@
 from cassandra.cluster import Cluster
 
-server_list = ['127.0.0.1']
+server_list = ['cassandra1','cassandra2','cassandra3']
 
 cluster = Cluster(server_list)
 session = cluster.connect()
