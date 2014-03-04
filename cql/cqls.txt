@@ -114,10 +114,10 @@ COPY users (username, first_name, last_name) TO 'users-select.txt';
 COPY users TO STDOUT;
 
 -- Delete
-DELETE FROM users WHERE username='jbrown';
-DELETE FROM users WHERE username in ('jbrown', 'jmiles1');
-DELETE skills FROM users WHERE username='jbrown';
-DELETE skill_levels['Java'] FROM users where username='jbrown';
+DELETE FROM users WHERE username='cnorris';
+DELETE FROM users WHERE username in ('cnorris', 'jskeet');
+DELETE skills FROM users WHERE username='jskeet';
+DELETE skill_levels['Java'] FROM users where username='jskeet';
 -- Permamently remove all data from the table
 TRUNCATE users;
 
